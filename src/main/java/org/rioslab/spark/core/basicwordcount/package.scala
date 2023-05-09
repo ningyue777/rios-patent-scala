@@ -48,15 +48,17 @@ object WordCountSQLbasic {
 
 
     // 将Dataframe的每一行的第3列（摘要）第4列（描述），（从0开始计数）连接成一个字符串
-    val lines = df.map(
-      line => line(3).toString + " " + line(4).toString
-    )
+    val lines = df.map { line =>
+      val summary = Option(line(5)).map(_.toString).getOrElse("")
+      val description = Option(line(6)).map(_.toString).getOrElse("")
+      s"$summary $description"
+    }
+
 
     val words = lines.flatMap(_.split(" ")) // 根据空格拆分字符串成一个个的单词
     words.show()
 
     val wordsGroup = words.groupBy("value") // 根据"value"这一个column分组
-
     val wordCount = wordsGroup
       .count() // 统计单词出现的频率
       .sort(col("count").desc) // 根据count这一个column降序排列
