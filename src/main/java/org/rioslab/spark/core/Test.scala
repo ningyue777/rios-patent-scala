@@ -1,4 +1,4 @@
-package org.rioslab.spark.core.test
+package org.rioslab.spark.core.ARMCPC
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
