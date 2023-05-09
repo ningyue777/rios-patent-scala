@@ -2,6 +2,7 @@ package org.rioslab.spark.core.test
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions._
 
 object WordCountSQLl {
 
@@ -20,14 +21,23 @@ object WordCountSQLl {
     import spark.implicits._
 
     // 这里创建一个spark的DataFrame
-    val df = spark
+    val df1 = spark
       .read // 表示读文件
       .option("header", "true") // 设置参数header=true，表示有表头
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("patent/patent_cleaned.csv") // 读取csv文件
-    df.show() // 向控制台打印Dataframe
+      .csv("patent/g_gov_interest.csv") // 读取csv文件
+    val df2 = spark
+      .read // 表示读文件
+      .option("header", "true") // 设置参数header=true，表示有表头
+      .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
+      // 使用"来转义"
+      .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
+      .csv("patent/g_gov_interest_org.csv") // 读取csv文件
+    val df = df1.join (df2,Seq("patent_id"), "inner" )
+    df.show(20)
+     // 向控制台打印Dataframe
 
 
 
@@ -37,7 +47,7 @@ object WordCountSQLl {
 
 
     // 简单加一栏expiration time做测试
-    import org.apache.spark.sql.functions._
+
     val dfWithExpTime = df.withColumn("expiration time", when(col("rpc_num") === "R01A02", 1).otherwise(2))
     dfWithExpTime.show()
     //将dfwithexptime（测试）的exptime=1数字的栏filter出来·
@@ -49,8 +59,6 @@ object WordCountSQLl {
     //filteredDFwithassignee.show()
 
 
-
-
     //To count the number of rows for each value in the "rpc_num" column
     val rowCounts = df.groupBy("rpc_num").count()
     rowCounts.show()
@@ -59,13 +67,9 @@ object WordCountSQLl {
     sortedCounts.show()
 
 
-
     // Write to a local file
     val outputPath = "/Users/Ningyuelai/Desktop/filetest.txt"
     rowCounts.write.format("csv").option("header", "true").mode("overwrite").save(outputPath)
-
-
-
 
 
     // create Keywords word pairs using files on my laptop, and count the keywords' frequency
@@ -84,20 +88,12 @@ object WordCountSQLl {
     println(s"The number of rows in the DataFrame is $countjoinedDF.")
 
 
-
-
-
-
     // filter the rows where cache and coherency appeared
     val wordA = "cache"
     val wordB = "coherency"
     val filteredrows2 = df.filter((col(colName = "abstract").contains(wordA) || col(colName = "description").contains(wordA)) && (col("abstract").contains(wordB) || col("description").contains(wordB)))
     val count2 = filteredrows2.count()
     println(s"The words $wordA and $wordB appeared together in $count2 rows.")
-
-
-
-
 
 
     // filter the rows where either abstract or description column contains both words (RDD)
@@ -114,8 +110,6 @@ object WordCountSQLl {
     val count1 = filteredRDD.count()
     println(s"The words $wordC and $wordD appeared together in $count1 rows.")
     println(filteredRDD)
-
-
 
 
     // 将Dataframe的每一行的第3列（摘要）第4列（描述），（从0开始计数）连接成一个字符串
@@ -135,7 +129,7 @@ object WordCountSQLl {
 
 
     //移除部分stopwords
-    val stopWords = List("a", "an", "the", "in", "on", "at", "to", "of", "for", "and","is","as","be")
+    val stopWords = List("a", "an", "the", "in", "on", "at", "to", "of", "for", "and", "is", "as", "be")
 
     val wordsFiltered = words
       .filter(!stopWords.contains(_)) // Remove stop words
@@ -146,11 +140,9 @@ object WordCountSQLl {
     wordsFiltered.show()
 
 
-
     //filter DF based on RPC number
     val filteredDF = df.filter(col("rpc_num").contains("R01A02"))
     filteredDF.show()
-
 
 
     //filter DF based on RPC number RDD, 然后看高频词
