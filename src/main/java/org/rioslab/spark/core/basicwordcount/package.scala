@@ -21,14 +21,23 @@ object WordCountSQLbasic {
     import spark.implicits._
 
     // 这里创建一个spark的DataFrame
-    val df = spark
+    val df1 = spark
       .read // 表示读文件
       .option("header", "true") // 设置参数header=true，表示有表头
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("patent/patent_cleaned.csv") // 读取csv文件
-    df.show() // 向控制台打印Dataframe
+      .csv("patent/g_gov_interest.csv") // 读取csv文件
+    val df2 = spark
+      .read // 表示读文件
+      .option("header", "true") // 设置参数header=true，表示有表头
+      .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
+      // 使用"来转义"
+      .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
+      .csv("patent/g_gov_interest_org.csv") // 读取csv文件
+    val df = df1.join(df2, Seq("patent_id"), "inner")
+    df.show(20)
+    // 向控制台打印Dataframe
 
 
 
