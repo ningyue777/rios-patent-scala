@@ -41,7 +41,7 @@ object ARMCPCClassCountSQL {
     val filteredDF = df.filter(col("assignee_id").contains("Arm Limited"))
     filteredDF.show()
     //count the number of rows for each value in the "cpc.code" column
-    val rowCounts = filteredDF.groupBy("cpc.code").count()
+    val rowCounts = filteredDF.groupBy("cpc_type").count()
     rowCounts.show()
     //sort in descending order
     val sortedCounts = rowCounts.orderBy(desc("count"))
