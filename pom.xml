@@ -26,11 +26,6 @@
             <artifactId>spark-sql_2.13</artifactId>
             <version>3.2.4</version>
         </dependency>
-        <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-mllib_3.2.4</artifactId>
-            <version>3.2.4</version>
-        </dependency>
     </dependencies>
 
 

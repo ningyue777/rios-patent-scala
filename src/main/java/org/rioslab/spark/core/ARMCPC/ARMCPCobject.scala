@@ -1,13 +1,12 @@
-package org.rioslab.spark.core.ARMCPCclasscount
+package org.rioslab.spark.core.ARMCPC
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
-object ARMCPCClassCountSQL {
+object ARMCPCobject{
   // 这里是程序运行的主函数
   def main(args: Array[String]) : Unit = {
-
     // 创建配置
     val config = new SparkConf() // 创建一个配置类的对象
       .setMaster("local[*]") // 设置spark的运行模式 local[*] 表示本地运行，自动确定使用的CPU核数
@@ -25,30 +24,27 @@ object ARMCPCClassCountSQL {
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("patent/g_assignee_disambiguated.csv") // 读取csv文件
+      .csv("/patent/uspto/csv/g_assignee_disambiguated.csv") // 读取csv文件
     val df2 = spark
       .read // 表示读文件
       .option("header", "true") // 设置参数header=true，表示有表头
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("patent/g_cpc_current.csv") // 读取csv文件
+      .csv("/patent/uspto/csv/g_cpc_current.csv") // 读取csv文件
     val df = df1.join(df2, Seq("patent_id"), "inner")
     df.show(20)
     // 向控制台打印Dataframe
 
     //filter only those patents with assignee===MIPS
-    val filteredDF = df.filter(col("assignee_id").contains("Arm Limited"))
+    val filteredDF = df.filter(col("disambig_assignee_organization").contains("Arm Limited"))
     filteredDF.show()
     //count the number of rows for each value in the "cpc.code" column
-    val rowCounts = filteredDF.groupBy("cpc_type").count()
+    val rowCounts = filteredDF.groupBy("cpc_group").count()
     rowCounts.show()
     //sort in descending order
     val sortedCounts = rowCounts.orderBy(desc("count"))
     sortedCounts.show(70)
-    // Write to a local file
-    val outputPath = "/Users/Ningyuelai/Desktop/ARMCPCfiletest1.txt"
-    sortedCounts.write.format("csv").option("header", "true").mode("overwrite").save(outputPath)
 
 
   }
