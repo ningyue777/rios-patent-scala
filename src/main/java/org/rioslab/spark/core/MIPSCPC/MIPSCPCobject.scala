@@ -1,10 +1,10 @@
-package org.rioslab.spark.core.RPCclasscount
+package org.rioslab.spark.core.MIPSCPC
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
-object CPCClassCountSQL {
+object MIPSCPCobject{
   // 这里是程序运行的主函数
   def main(args: Array[String]) : Unit = {
 
@@ -25,29 +25,32 @@ object CPCClassCountSQL {
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("patent/g_assignee_disambiguated.csv") // 读取csv文件
+      .csv("/patent/uspto/csv/g_assignee_disambiguated.csv") // 读取csv文件
     val df2 = spark
       .read // 表示读文件
       .option("header", "true") // 设置参数header=true，表示有表头
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("patent/g_cpc_current.csv") // 读取csv文件
+      .csv("/patent/uspto/csv/g_cpc_current.csv") // 读取csv文件
     val df = df1.join(df2, Seq("patent_id"), "inner")
     df.show(20)
 
     //filter only those patents with assignee===MIPS
-    val filteredDF = df.filter(col("assignee_id").like("%MIPS%"))
-    filteredDF.show()
+    val filteredDF = df.filter(col("disambig_assignee_organization").like("%MIPS%"))
+
     //count the number of rows for each value in the "cpc.code" column
-    val rowCounts = filteredDF.groupBy("cpc_type").count()
-    rowCounts.show()
+    val rowCounts = filteredDF.groupBy("cpc_group").count()
+
     //sort in descending order
     val sortedCounts = rowCounts.orderBy(desc("count"))
     sortedCounts.show(70)
-    // Write to a local file
-    val outputPath = "/Users/Ningyuelai/Desktop/MIPSCPCfiletest1.txt"
-    sortedCounts.write.format("csv").option("header", "true").mode("overwrite").save(outputPath)
+    val rowdfnumber = filteredDF.count()
+    println(s"The number of rows in the DataFrame is $rowdfnumber.")
+
+    val sortedstring= sortedCounts.toJSON.toString()
+    println (sortedstring)
+
 
 
   }

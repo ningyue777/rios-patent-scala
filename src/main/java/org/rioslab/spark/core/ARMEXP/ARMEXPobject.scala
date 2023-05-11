@@ -1,10 +1,11 @@
-package org.rioslab.spark.core.ARMCPC
+package org.rioslab.spark.core.ARMEXP
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
-object ARMCPCobject{
+
+object ARMEXPobject{
   // 这里是程序运行的主函数
   def main(args: Array[String]) : Unit = {
     // 创建配置
@@ -31,26 +32,28 @@ object ARMCPCobject{
       .option("multiline", "true") // 设置参数multiline=true，表示一个单元格可能有多行
       // 使用"来转义"
       .option("escape", "\"") // 设置escape="\""，表示使用双引号转义双引号。意思在csv文件里""表示"
-      .csv("/patent/uspto/csv/g_cpc_current.csv") // 读取csv文件
+      .csv("/patent/uspto/csv/g_patent.csv") // 读取csv文件
     val df = df1.join(df2, Seq("patent_id"), "inner")
-    df.show(20)
     // 向控制台打印Dataframe
-
-    //filter only those patents with assignee===ARM
-    val filteredDF = df.filter(col("disambig_assignee_organization").contains("Arm Limited"))
-
-    //count the number of rows for each value in the "cpc.code" column
-    val rowCounts = filteredDF.groupBy("cpc_group").count()
-
-    //sort in descending order
-    val sortedCounts = rowCounts.orderBy(desc("count"))
-    sortedCounts.show(70)
-    val rowdfnumber = filteredDF.count()
+    df.show(20)
+    val rowdfnumber= df.count()
     println(s"The number of rows in the DataFrame is $rowdfnumber.")
 
-    val sortedstring = sortedCounts.toJSON.toString()
+
+
+    //filter only those patents with assignee===ARM
+    val filtered = df.filter(col("disambig_assignee_organization").contains("Arm Limited"))
+    filtered.show(20)
+
+    import org.apache.spark.sql.functions.{col, year}
+    val filteredDFbytime = filtered.filter(year(col("patent_date")) < 2005)
+      .orderBy(col("patent_date").desc)
+    filteredDFbytime.show(30)
+
+    val sortedstring =filteredDFbytime.toJSON.toString()
     println(sortedstring)
 
 
   }
+
 }
