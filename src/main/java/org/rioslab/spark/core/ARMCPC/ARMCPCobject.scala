@@ -44,7 +44,7 @@ object ARMCPCobject{
 
     //sort in descending order
     val sortedCounts = rowCounts.orderBy(desc("count"))
-    sortedCounts.show(70)
+    sortedCounts.show(100)
     val rowdfnumber = filteredDF.count()
     println(s"The number of rows in the DataFrame is $rowdfnumber.")
 
