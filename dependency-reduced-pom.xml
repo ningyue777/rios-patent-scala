@@ -86,9 +86,11 @@
     </plugins>
   </build>
   <properties>
+    <jedis.version>4.3.0</jedis.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
+    <spark.version>3.2.4</spark.version>
   </properties>
 </project>
 

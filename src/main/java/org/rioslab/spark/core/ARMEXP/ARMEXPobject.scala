@@ -7,7 +7,7 @@ import org.apache.spark.sql.functions._
 
 object ARMEXPobject{
   // 这里是程序运行的主函数
-  def main(args: Array[String]) : Unit = {
+  def run(args: Array[String]) : String = {
     // 创建配置
     val config = new SparkConf() // 创建一个配置类的对象
       .setMaster("local[*]") // 设置spark的运行模式 local[*] 表示本地运行，自动确定使用的CPU核数
@@ -50,8 +50,11 @@ object ARMEXPobject{
       .orderBy(col("patent_date").desc)
     filteredDFbytime.show(30)
 
-    val sortedstring =filteredDFbytime.toJSON.toString()
-    println(sortedstring)
+
+    val sortedstring = filteredDFbytime.toJSON.collectAsList().toString()
+
+
+    sortedstring
 
 
   }

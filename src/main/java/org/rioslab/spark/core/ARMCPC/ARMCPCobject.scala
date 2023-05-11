@@ -6,7 +6,7 @@ import org.apache.spark.sql.functions._
 
 object ARMCPCobject{
   // 这里是程序运行的主函数
-  def main(args: Array[String]) : Unit = {
+  def run(args: Array[String]) : String = {
     // 创建配置
     val config = new SparkConf() // 创建一个配置类的对象
       .setMaster("local[*]") // 设置spark的运行模式 local[*] 表示本地运行，自动确定使用的CPU核数
@@ -48,9 +48,10 @@ object ARMCPCobject{
     val rowdfnumber = filteredDF.count()
     println(s"The number of rows in the DataFrame is $rowdfnumber.")
 
-    val sortedstring = sortedCounts.toJSON.toString()
-    println(sortedstring)
+    val sortedstring = sortedCounts.toJSON.collectAsList().toString()
 
+
+    sortedstring
 
   }
 }
