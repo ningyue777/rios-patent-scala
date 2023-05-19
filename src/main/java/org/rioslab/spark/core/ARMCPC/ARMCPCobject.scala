@@ -39,11 +39,16 @@ object ARMCPCobject{
     //filter only those patents with assignee===ARM
     val filteredDF = df.filter(col("disambig_assignee_organization").contains("Arm Limited"))
 
-    //count the number of rows for each value in the "cpc.code" column
-    val rowCounts = filteredDF.groupBy("cpc_group").count()
+    // Repartition the DataFrame to optimize data distribution
+    val repartitionedDF = filteredDF.repartition($"cpc_group")
 
-    //sort in descending order
+    // Count the number of rows for each value in the "cpc_group" column
+    val rowCounts = repartitionedDF.groupBy("cpc_group").count()
+
+    // Sort in descending order
     val sortedCounts = rowCounts.orderBy(desc("count"))
+
+
     sortedCounts.show(100)
     val rowdfnumber = filteredDF.count()
     println(s"The number of rows in the DataFrame is $rowdfnumber.")
