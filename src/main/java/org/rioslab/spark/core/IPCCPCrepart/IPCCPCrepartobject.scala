@@ -4,74 +4,68 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions._
 
-object IPCCPCrepartobject {
+object IPCCPCrepatobject {
   def run(args: Array[String]): String = {
     val config = new SparkConf()
       .setMaster("local[*]")
       .setAppName("WordCount SQL Application")
     val spark = SparkSession.builder().config(config).getOrCreate()
 
-    val assigneeDF = spark.read
-      .format("csv")
-      .option("header", "true")
-      .option("multiline", "true")
-      .option("escape", "\"")
-      .load("/patent/uspto/csv/g_assignee_disambiguated.csv")
-      .filter(col("disambig_assignee_organization").contains("Arm Limited"))
-      .select("patent_id")
-      .distinct()
+    val assigneeRDD = spark.sparkContext.textFile("/patent/uspto/csv/g_assignee_disambiguated.csv")
+    val patentRDD = spark.sparkContext.textFile("/patent/uspto/csv/g_cpc_current.csv")
+    val ipcRDD = spark.sparkContext.textFile("/patent/uspto/csv/g_ipc_at_issue.csv")
 
-    val patentDF = spark.read
-      .format("csv")
-      .option("header", "true")
-      .option("multiline", "true")
-      .option("escape", "\"")
-      .load("/patent/uspto/csv/g_cpc_current.csv")
+    val assigneeHeader = assigneeRDD.first()
+    val patentHeader = patentRDD.first()
+    val ipcHeader = ipcRDD.first()
 
-    val ipcDF = spark.read
-      .format("csv")
-      .option("header", "true")
-      .option("multiline", "true")
-      .option("escape", "\"")
-      .load("/patent/uspto/csv/g_ipc_at_issue.csv")
+    val assigneeDataRDD = assigneeRDD.filter(_ != assigneeHeader)
+    val patentDataRDD = patentRDD.filter(_ != patentHeader)
+    val ipcDataRDD = ipcRDD.filter(_ != ipcHeader)
 
-    val filteredDF = assigneeDF.join(patentDF, Seq("patent_id"))
-      .join(ipcDF, Seq("patent_id"))
+    val assigneePairRDD = assigneeDataRDD.map(line => {
+      val fields = line.split(",")
+      (fields(0), fields(3))
+    }).repartition(10) // Repartition assignee data RDD
 
-    filteredDF.createOrReplaceTempView("my_table")
+    val patentPairRDD = patentDataRDD.map(line => {
+      val fields = line.split(",")
+      (fields(0), fields(1))
+    })
 
-    val combinedDF = spark.sql(
-      """
-      SELECT CONCAT(ipc_class, subclass, main_group) AS IPC_number, cpc_group
-      FROM my_table
-      """)
+    val ipcPairRDD = ipcDataRDD.map(line => {
+      val fields = line.split(",")
+      (fields(0), fields(2))
+    })
 
-    combinedDF.show()
+    val joinRDD = assigneePairRDD.join(patentPairRDD).join(ipcPairRDD).repartition(10) // Repartition join RDD
 
-    combinedDF.createOrReplaceTempView("combinedDF")
+    val combinedRDD = joinRDD.map {
+      case (patentId, ((assigneeId, cpcGroup), ipcClass)) =>
+        (ipcClass.substring(0, 4), cpcGroup)
+    }
 
-    val ipcCountsDF = spark.sql(
-      """
-      SELECT IPC_number, cpc_group, COUNT(*) AS count
-      FROM combinedDF
-      GROUP BY IPC_number, cpc_group
-      """)
+    val ipcCountsRDD = combinedRDD.map(pair => (pair, 1)).reduceByKey(_ + _)
 
-    ipcCountsDF.createOrReplaceTempView("ipcCountsDF")
+    val sortedRDD = ipcCountsRDD.map {
+      case ((ipcClass, cpcGroup), count) =>
+        (ipcClass, (cpcGroup, count))
+    }.sortByKey()
 
-    val sortedDF = spark.sql(
-      """
-      SELECT IPC_number, cpc_group, count,
-      ROW_NUMBER() OVER (PARTITION BY IPC_number ORDER BY count DESC) AS rank
-      FROM ipcCountsDF
-      """)
+    val groupedRDD = sortedRDD.groupByKey().mapValues(_.toList.sortBy(-_._2).take(5))
 
-    val top5DF = sortedDF.filter("rank <= 5").limit(50)
+    groupedRDD.collect().foreach(println)
 
-    top5DF.show()
+    // Convert the resulting RDD to JSON and return it as a string
+    val jsonString = groupedRDD.map {
+      case (ipcClass, cpcCounts) =>
+        val cpcJson = cpcCounts.map {
+          case (cpcGroup, count) =>
+            s"""{"cpc_group":"$cpcGroup", "count":$count}"""
+        }
+        s"""{"IPC_number":"$ipcClass", "cpc_counts": [${cpcJson.mkString(",")}]}"""
+    }.collect().mkString("[", ",", "]")
 
-    // Convert the resulting DataFrame to JSON and return it as a string
-    val jsonString = top5DF.toJSON.collectAsList().toString()
     jsonString
   }
 }

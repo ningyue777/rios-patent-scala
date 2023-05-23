@@ -27,13 +27,13 @@ object ARMEXPSQLobject {
 
     val df = spark.sql(
       """
-        |SELECT *
+        |SELECT assignee_disambiguated.*, patent.*,
+        |       assignee_disambiguated._c0 AS assignee_disambiguated_c0
         |FROM assignee_disambiguated
         |JOIN patent
         |ON assignee_disambiguated.patent_id = patent.patent_id
         |""".stripMargin)
-
-    df.show(20)
+    df.show()
 
     val rowdfnumber = spark.sql("SELECT COUNT(*) AS rowdfnumber FROM assignee_disambiguated JOIN patent ON assignee_disambiguated.patent_id = patent.patent_id").collect()(0).getLong(0)
     println(s"The number of rows in the DataFrame is $rowdfnumber.")
