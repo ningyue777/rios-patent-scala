@@ -70,7 +70,6 @@ object IPCCPCobject {
 
     val top5DF = groupedDF.withColumn("cpc_counts", slice(col("cpc_counts"), 1, 5))
 
-    top5DF.show(false)
 
     // Convert the resulting DataFrame to JSON and return it as a string
     val jsonString = top5DF.toJSON.collectAsList().toString()

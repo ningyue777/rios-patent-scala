@@ -37,7 +37,7 @@ object ARMCPCSQLobject {
         |FROM assignee_disambiguated JOIN cpc_current ON assignee_disambiguated.patent_id = cpc_current.patent_id
         |""".stripMargin)
 
-    df.show(20)
+
 
     // Create a temporary view for the filtered DataFrame
     df.createOrReplaceTempView("temp_table")

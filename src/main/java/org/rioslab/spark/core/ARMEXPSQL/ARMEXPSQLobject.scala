@@ -25,29 +25,19 @@ object ARMEXPSQLobject {
          |OPTIONS (path '/patent/uspto/csv/g_patent.csv', header 'true', multiline 'true', escape '"')
          |""".stripMargin)
 
-    val df = spark.sql(
-      """
-        |SELECT assignee_disambiguated.*, patent.*,
-        |       assignee_disambiguated._c0 AS assignee_disambiguated_c0
-        |FROM assignee_disambiguated
-        |JOIN patent
-        |ON assignee_disambiguated.patent_id = patent.patent_id
-        |""".stripMargin)
-    df.show()
+    val filteredAssigneeDF = spark.sql("SELECT disambig_assignee_organization, patent_id FROM assignee_disambiguated WHERE disambig_assignee_organization LIKE '%Arm Limited%'")
+    val filteredPatentDF = spark.sql("SELECT  patent_id, patent_date FROM patent")
 
-    val rowdfnumber = spark.sql("SELECT COUNT(*) AS rowdfnumber FROM assignee_disambiguated JOIN patent ON assignee_disambiguated.patent_id = patent.patent_id").collect()(0).getLong(0)
-    println(s"The number of rows in the DataFrame is $rowdfnumber.")
+    val df = filteredAssigneeDF.join(filteredPatentDF, Seq("patent_id"))
 
-    val filtered = spark.sql("SELECT * FROM assignee_disambiguated JOIN patent ON assignee_disambiguated.patent_id = patent.patent_id WHERE assignee_disambiguated.disambig_assignee_organization LIKE '%Arm Limited%'")
-    filtered.show(20)
+    val rowdfnumber = df.count()
 
-    val filteredDFbytime = spark.sql("SELECT *, __auto_generated_subquery_name.patent_date AS patent_date FROM (SELECT * FROM assignee_disambiguated JOIN patent ON assignee_disambiguated.patent_id = patent.patent_id WHERE assignee_disambiguated.disambig_assignee_organization LIKE '%Arm Limited%') WHERE year(__auto_generated_subquery_name.patent_date) < 2005 ORDER BY __auto_generated_subquery_name.patent_date DESC")
+
+    val filteredDFbytime = df.filter(year(col("patent_date")) < 2005).orderBy(desc("patent_date"))
     filteredDFbytime.show(30)
 
-
-    val sortedstring = filteredDFbytime.toJSON.collectAsList().toString()
-
-    sortedstring
+    val sortedString = filteredDFbytime.toJSON.collectAsList().toString()
+    sortedString
   }
 }
 
