@@ -34,7 +34,9 @@ object ARMEXPSQLobject {
 
 
     val filteredDFbytime = df.filter(year(col("patent_date")) < 2005).orderBy(desc("patent_date"))
-    filteredDFbytime.show(30)
+    val groupedDF = filteredDFbytime.groupBy(year(col("patent_date")).as("year"))
+      .agg(collect_list(struct("*")).as("grouped_data"), count("*").as("count"))
+      .orderBy(desc("year"))
 
     val sortedString = filteredDFbytime.toJSON.collectAsList().toString()
     sortedString
