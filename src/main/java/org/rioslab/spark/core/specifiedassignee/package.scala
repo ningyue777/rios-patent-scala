@@ -32,10 +32,20 @@ package object specifiedassigneeobject {
       .load("/patent/uspto/csv/g_cpc_current.csv")
       .createOrReplaceTempView("cpc_current")
 
+    val yearDF = spark.read
+      .format("csv")
+      .option("header", "true")
+      .option("multiline", "true")
+      .option("escape", "\"")
+      .load("/patent/uspto/csv/g_patent.csv")
+      .createOrReplaceTempView("yearDF")
+
     val df = spark.sql(
       """
         |SELECT *
-        |FROM assignee_disambiguated JOIN cpc_current ON assignee_disambiguated.patent_id = cpc_current.patent_id
+        |FROM assignee_disambiguated
+        |JOIN cpc_current ON assignee_disambiguated.patent_id = cpc_current.patent_id
+        |JOIN yearDF ON assignee_disambiguated.patent_id = yearDF.patent_id
         |WHERE cpc_group = 'G06F9/30036'
         |""".stripMargin)
 
@@ -73,5 +83,47 @@ package object specifiedassigneeobject {
       s"The number of patents of MIPS in this specified field is $mipsCount."
 
     resultString
+    val armPatentsByYear = spark.sql(
+      """
+        |SELECT YEAR(patent_date) AS year, COUNT(*) AS count
+        |FROM temp_table
+        |WHERE disambig_assignee_organization = 'Arm Limited'
+        |GROUP BY YEAR(patent_date)
+        |ORDER BY YEAR(patent_date)
+        |""".stripMargin)
+      .collect()
+
+    val intelPatentsByYear = spark.sql(
+      """
+        |SELECT YEAR(patent_date) AS year, COUNT(*) AS count
+        |FROM temp_table
+        |WHERE disambig_assignee_organization = 'Intel'
+        |GROUP BY YEAR(patent_date)
+        |ORDER BY YEAR(patent_date)
+        |""".stripMargin)
+      .collect()
+
+    val mipsPatentsByYear = spark.sql(
+      """
+        |SELECT YEAR(patent_date) AS year, COUNT(*) AS count
+        |FROM temp_table
+        |WHERE disambig_assignee_organization = 'MIPS'
+        |GROUP BY YEAR(patent_date)
+        |ORDER BY YEAR(patent_date)
+        |""".stripMargin)
+      .collect()
+
+    // Append the results by year
+
+    val armPatentsByYearString = armPatentsByYear.map(row => s"${row.getAs[Int]("year")}: ${row.getAs[Long]("count")}").mkString("\n")
+    val intelPatentsByYearString = intelPatentsByYear.map(row => s"${row.getAs[Int]("year")}: ${row.getAs[Long]("count")}").mkString("\n")
+    val mipsPatentsByYearString = mipsPatentsByYear.map(row => s"${row.getAs[Int]("year")}: ${row.getAs[Long]("count")}").mkString("\n")
+
+    val updatedResultString = s"$resultString\n\n" +
+      s"ARM Patents by Year:\n$armPatentsByYearString\n\n" +
+      s"Intel Patents by Year:\n$intelPatentsByYearString\n\n" +
+      s"MIPS Patents by Year:\n$mipsPatentsByYearString"
+
+    updatedResultString
   }
 }

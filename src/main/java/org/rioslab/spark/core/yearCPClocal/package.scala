@@ -33,6 +33,7 @@ object yearCPClocalobject {
       """
       SELECT YEAR(patent_date) AS year, cpc_group
       FROM my_table
+      WHERE YEAR(patent_date) BETWEEN 2002 AND 2005
       """)
 
     combinedDF.createOrReplaceTempView("combinedDF")

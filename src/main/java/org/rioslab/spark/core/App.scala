@@ -1,13 +1,13 @@
 package org.rioslab.spark.core
 
-import org.rioslab.spark.core.specifiedassignee.specifiedassigneeobject
+import org.rioslab.spark.core.searchkeywords.searchkeywordsobject
 
 
 object App {
 
   def main(args: Array[String]): Unit = {
 
-    val res = specifiedassigneeobject.run(args)
+    val res = searchkeywordsobject.run(args)
 
  println(res)
   }
